@@ -1,0 +1,81 @@
+[manifest]
+version = "1.0.0"
+priority = 0
+dump_lua = false
+
+[[patches]]
+[patches.module]
+source = "src/data.lua"
+before = "main.lua"
+name = "market_catalog.data"
+
+[[patches]]
+[patches.module]
+source = "src/registry.lua"
+before = "main.lua"
+name = "market_catalog.registry"
+
+[[patches]]
+[patches.module]
+source = "src/config.lua"
+before = "main.lua"
+name = "market_catalog.config"
+
+[[patches]]
+[patches.module]
+source = "src/core.lua"
+before = "main.lua"
+name = "market_catalog.core"
+
+[[patches]]
+[patches.module]
+source = "src/ui.lua"
+before = "main.lua"
+name = "market_catalog.ui"
+
+[[patches]]
+[patches.module]
+source = "src/shop.lua"
+before = "main.lua"
+name = "market_catalog.shop"
+
+[[patches]]
+[patches.pattern]
+target = "functions/UI_definitions.lua"
+pattern = "local card = create_card(v.type, area, nil, nil, nil, nil, nil, 'sho')"
+position = "at"
+match_indent = true
+payload = '''
+local market_catalog_key = MarketMod and MarketMod.shop and MarketMod.shop.key_for(area)
+if market_catalog_key then v = {type = 'Joker', val = v.val} end
+local card = create_card(v.type, area, nil, nil, nil, nil, market_catalog_key, 'sho')
+if market_catalog_key then MarketMod.shop.track(card, market_catalog_key) end
+'''
+
+[[patches]]
+[patches.copy]
+target = "main.lua"
+position = "append"
+sources = ["bootstrap.lua"]
+
+[[patches]]
+[patches.pattern]
+target = "functions/common_events.lua"
+pattern = "card:set_edition(edition)"
+position = "at"
+match_indent = true
+payload = '''
+local catalog_edition = MarketMod and MarketMod.shop and MarketMod.shop.creation_edition(area, forced_key, key_append)
+card:set_edition(catalog_edition or edition)
+'''
+
+[[patches]]
+[patches.pattern]
+target = "functions/UI_definitions.lua"
+pattern = "if v:apply_to_run({type = 'store_joker_modify', card = card}) then break end"
+position = "at"
+match_indent = true
+payload = '''
+if not (MarketMod and MarketMod.shop and MarketMod.shop.has_explicit_edition(card))
+    and v:apply_to_run({type = 'store_joker_modify', card = card}) then break end
+'''
